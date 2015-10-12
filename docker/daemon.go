@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"runtime/debug"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/distribution/uuid"
@@ -54,6 +55,8 @@ func handleGlobalDaemonFlag() {
 			}
 		})
 	}
+
+	debug.SetMaxThreads(12000)
 
 	if *flDaemon {
 		daemonCli.(*DaemonCli).CmdDaemon(flag.Args()...)
