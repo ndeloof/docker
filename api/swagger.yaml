@@ -7075,6 +7075,12 @@ paths:
         `stdout` and `stderr`. The stream consists of a series of frames, each
         containing a header and a payload.
 
+        The HTTP Content-Type is set to application/vnd.docker.multiplexed-stream
+        if the client accepts such a value. Otherwise Content-Type is set to
+        application/vnd.docker.raw-stream (just like enabled TTY mode) and it is
+        client responsibility to inspect container configuration and check if TTY
+        has been disabled, to adapt the HTTP response parser accordingly.
+
         The header contains the information which the stream writes (`stdout` or
         `stderr`). It also contains the size of the associated frame encoded in
         the last four bytes (`uint32`).

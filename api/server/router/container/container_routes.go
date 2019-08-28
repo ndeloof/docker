@@ -20,11 +20,19 @@ import (
 	containerpkg "github.com/docker/docker/container"
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/pkg/ioutils"
+	"github.com/golang/gddo/httputil"
 	"github.com/moby/sys/signal"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
+)
+
+const (
+	// ContentTypeRawStream is Content-Type HTTP header set for raw TTY streams
+	ContentTypeRawStream = "application/vnd.docker.raw-stream"
+	// ContentTypeMultiplexedStream is Content-Type HTTP header set for stdin/stdout/stderr multiplexed streams
+	ContentTypeMultiplexedStream = "application/vnd.docker.multiplexed-stream"
 )
 
 func (s *containerRouter) postCommit(ctx context.Context, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
@@ -154,6 +162,12 @@ func (s *containerRouter) getContainersLogs(ctx context.Context, w http.Response
 	if err != nil {
 		return err
 	}
+
+	contentType := ContentTypeRawStream
+	if !tty {
+		contentType = ContentTypeMultiplexedStream
+	}
+	w.Header().Add("Content-Type", httputil.NegotiateContentType(r, []string{contentType}, ContentTypeRawStream))
 
 	// if has a tty, we're not muxing streams. if it doesn't, we are. simple.
 	// this is the point of no return for writing a response. once we call
@@ -614,7 +628,13 @@ func (s *containerRouter) postContainersAttach(ctx context.Context, w http.Respo
 		conn.Write([]byte{})
 
 		if upgrade {
-			fmt.Fprintf(conn, "HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: tcp\r\n\r\n")
+			contentType := ContentTypeMultiplexedStream
+			if httputils.BoolValue(r, "tty") {
+				contentType = ContentTypeRawStream
+			}
+			contentType = httputil.NegotiateContentType(r, []string{contentType}, ContentTypeRawStream)
+
+			fmt.Fprintf(conn, "HTTP/1.1 101 UPGRADED\r\nContent-Type: "+contentType+"\r\nConnection: Upgrade\r\nUpgrade: tcp\r\n\r\n")
 		} else {
 			fmt.Fprintf(conn, "HTTP/1.1 200 OK\r\nContent-Type: application/vnd.docker.raw-stream\r\n\r\n")
 		}

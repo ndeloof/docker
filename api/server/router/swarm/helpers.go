@@ -3,7 +3,8 @@ package swarm // import "github.com/docker/docker/api/server/router/swarm"
 import (
 	"context"
 	"fmt"
-	"io"
+	"github.com/docker/docker/api/server/router/container"
+	"github.com/golang/gddo/httputil"
 	"net/http"
 
 	"github.com/docker/docker/api/server/httputils"
@@ -15,7 +16,7 @@ import (
 
 // swarmLogs takes an http response, request, and selector, and writes the logs
 // specified by the selector to the response
-func (sr *swarmRouter) swarmLogs(ctx context.Context, w io.Writer, r *http.Request, selector *backend.LogSelector) error {
+func (sr *swarmRouter) swarmLogs(ctx context.Context, w http.ResponseWriter, r *http.Request, selector *backend.LogSelector) error {
 	// Args are validated before the stream starts because when it starts we're
 	// sending HTTP 200 by writing an empty chunk of data to tell the client that
 	// daemon is going to stream. By sending this initial HTTP 200 we can't report
@@ -63,6 +64,11 @@ func (sr *swarmRouter) swarmLogs(ctx context.Context, w io.Writer, r *http.Reque
 		return err
 	}
 
+	contentType := container.ContentTypeRawStream
+	if !tty {
+		contentType = container.ContentTypeMultiplexedStream
+	}
+	w.Header().Add("Content-Type", httputil.NegotiateContentType(r, []string{contentType}, container.ContentTypeRawStream))
 	httputils.WriteLogStream(ctx, w, msgs, logsConfig, !tty)
 	return nil
 }
