@@ -30,12 +30,12 @@ func (cli *Client) postHijacked(ctx context.Context, path string, query url.Valu
 	}
 	req = cli.addHeaders(req, headers)
 
-	conn, err := cli.setupHijackConn(ctx, req, "tcp")
+	conn, mediaType, err := cli.setupHijackConn(ctx, req, "tcp")
 	if err != nil {
 		return types.HijackedResponse{}, err
 	}
 
-	return types.HijackedResponse{Conn: conn, Reader: bufio.NewReader(conn)}, err
+	return types.HijackedResponse{Conn: conn, ContentType: mediaType, Reader: bufio.NewReader(conn)}, err
 }
 
 // DialHijack returns a hijacked connection with negotiated protocol proto.
@@ -46,7 +46,8 @@ func (cli *Client) DialHijack(ctx context.Context, url, proto string, meta map[s
 	}
 	req = cli.addHeaders(req, meta)
 
-	return cli.setupHijackConn(ctx, req, proto)
+	conn, _, err := cli.setupHijackConn(ctx, req, proto)
+	return conn, err
 }
 
 // fallbackDial is used when WithDialer() was not called.
@@ -61,7 +62,7 @@ func fallbackDial(proto, addr string, tlsConfig *tls.Config) (net.Conn, error) {
 	return net.Dial(proto, addr)
 }
 
-func (cli *Client) setupHijackConn(ctx context.Context, req *http.Request, proto string) (net.Conn, error) {
+func (cli *Client) setupHijackConn(ctx context.Context, req *http.Request, proto string) (net.Conn, string, error) {
 	req.Host = cli.addr
 	req.Header.Set("Connection", "Upgrade")
 	req.Header.Set("Upgrade", proto)
@@ -69,7 +70,7 @@ func (cli *Client) setupHijackConn(ctx context.Context, req *http.Request, proto
 	dialer := cli.Dialer()
 	conn, err := dialer(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot connect to the Docker daemon. Is 'docker daemon' running on this host?")
+		return nil, "", errors.Wrap(err, "cannot connect to the Docker daemon. Is 'docker daemon' running on this host?")
 	}
 
 	// When we set up a TCP connection for hijack, there could be long periods
@@ -91,18 +92,18 @@ func (cli *Client) setupHijackConn(ctx context.Context, req *http.Request, proto
 	//nolint:staticcheck // ignore SA1019 for connecting to old (pre go1.8) daemons
 	if err != httputil.ErrPersistEOF {
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		if resp.StatusCode != http.StatusSwitchingProtocols {
 			resp.Body.Close()
-			return nil, fmt.Errorf("unable to upgrade to %s, received %d", proto, resp.StatusCode)
+			return nil, "", fmt.Errorf("unable to upgrade to %s, received %d", proto, resp.StatusCode)
 		}
 	}
 
 	c, br := clientconn.Hijack()
 	if br.Buffered() > 0 {
 		// If there is buffered content, wrap the connection.  We return an
-		// object that implements CloseWrite iff the underlying connection
+		// object that implements CloseWrite if the underlying connection
 		// implements it.
 		if _, ok := c.(types.CloseWriter); ok {
 			c = &hijackedConnCloseWriter{&hijackedConn{c, br}}
@@ -113,7 +114,12 @@ func (cli *Client) setupHijackConn(ctx context.Context, req *http.Request, proto
 		br.Reset(nil)
 	}
 
-	return c, nil
+	var mediaType string
+	if h, ok := resp.Header["Content-Type"]; ok {
+		mediaType = h[0]
+	}
+
+	return c, mediaType, nil
 }
 
 // hijackedConn wraps a net.Conn and is returned by setupHijackConn in the case

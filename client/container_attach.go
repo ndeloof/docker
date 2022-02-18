@@ -52,6 +52,9 @@ func (cli *Client) ContainerAttach(ctx context.Context, container string, option
 		query.Set("logs", "1")
 	}
 
-	headers := map[string][]string{"Content-Type": {"text/plain"}}
+	headers := map[string][]string{
+		"Content-Type": {"text/plain"},
+		"Accept":       {"application/vnd.docker.raw-stream", "application/vnd.docker.multiplexed-stream"},
+	}
 	return cli.postHijacked(ctx, "/containers/"+container+"/attach", query, nil, headers)
 }

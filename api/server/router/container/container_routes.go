@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/containerd/containerd/platforms"
+	"github.com/docker/docker/api"
 	"github.com/docker/docker/api/server/httpstatus"
 	"github.com/docker/docker/api/server/httputils"
 	"github.com/docker/docker/api/types"
@@ -26,13 +27,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
-)
-
-const (
-	// ContentTypeRawStream is Content-Type HTTP header set for raw TTY streams
-	ContentTypeRawStream = "application/vnd.docker.raw-stream"
-	// ContentTypeMultiplexedStream is Content-Type HTTP header set for stdin/stdout/stderr multiplexed streams
-	ContentTypeMultiplexedStream = "application/vnd.docker.multiplexed-stream"
 )
 
 func (s *containerRouter) postCommit(ctx context.Context, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
@@ -163,11 +157,11 @@ func (s *containerRouter) getContainersLogs(ctx context.Context, w http.Response
 		return err
 	}
 
-	contentType := ContentTypeRawStream
+	contentType := api.MediaTypeRawStream
 	if !tty {
-		contentType = ContentTypeMultiplexedStream
+		contentType = api.MediaTypeMultiplexedStream
 	}
-	w.Header().Add("Content-Type", httputil.NegotiateContentType(r, []string{contentType}, ContentTypeRawStream))
+	w.Header().Add("Content-Type", httputil.NegotiateContentType(r, []string{contentType}, api.MediaTypeRawStream))
 
 	// if has a tty, we're not muxing streams. if it doesn't, we are. simple.
 	// this is the point of no return for writing a response. once we call
@@ -628,11 +622,11 @@ func (s *containerRouter) postContainersAttach(ctx context.Context, w http.Respo
 		conn.Write([]byte{})
 
 		if upgrade {
-			contentType := ContentTypeMultiplexedStream
+			contentType := api.MediaTypeMultiplexedStream
 			if httputils.BoolValue(r, "tty") {
-				contentType = ContentTypeRawStream
+				contentType = api.MediaTypeRawStream
 			}
-			contentType = httputil.NegotiateContentType(r, []string{contentType}, ContentTypeRawStream)
+			contentType = httputil.NegotiateContentType(r, []string{contentType}, api.MediaTypeRawStream)
 
 			fmt.Fprintf(conn, "HTTP/1.1 101 UPGRADED\r\nContent-Type: "+contentType+"\r\nConnection: Upgrade\r\nUpgrade: tcp\r\n\r\n")
 		} else {

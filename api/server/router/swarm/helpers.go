@@ -3,7 +3,7 @@ package swarm // import "github.com/docker/docker/api/server/router/swarm"
 import (
 	"context"
 	"fmt"
-	"github.com/docker/docker/api/server/router/container"
+	"github.com/docker/docker/api"
 	"github.com/golang/gddo/httputil"
 	"net/http"
 
@@ -64,11 +64,11 @@ func (sr *swarmRouter) swarmLogs(ctx context.Context, w http.ResponseWriter, r *
 		return err
 	}
 
-	contentType := container.ContentTypeRawStream
+	contentType := api.MediaTypeRawStream
 	if !tty {
-		contentType = container.ContentTypeMultiplexedStream
+		contentType = api.MediaTypeMultiplexedStream
 	}
-	w.Header().Add("Content-Type", httputil.NegotiateContentType(r, []string{contentType}, container.ContentTypeRawStream))
+	w.Header().Add("Content-Type", httputil.NegotiateContentType(r, []string{contentType}, api.MediaTypeRawStream))
 	httputils.WriteLogStream(ctx, w, msgs, logsConfig, !tty)
 	return nil
 }

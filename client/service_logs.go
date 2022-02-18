@@ -44,7 +44,10 @@ func (cli *Client) ServiceLogs(ctx context.Context, serviceID string, options ty
 	}
 	query.Set("tail", options.Tail)
 
-	resp, err := cli.get(ctx, "/services/"+serviceID+"/logs", query, nil)
+	headers := map[string][]string{
+		"Accept": {"application/vnd.docker.raw-stream", "application/vnd.docker.multiplexed-stream"},
+	}
+	resp, err := cli.get(ctx, "/services/"+serviceID+"/logs", query, headers)
 	if err != nil {
 		return nil, err
 	}

@@ -114,8 +114,9 @@ type NetworkListOptions struct {
 
 // HijackedResponse holds connection information for a hijacked request.
 type HijackedResponse struct {
-	Conn   net.Conn
-	Reader *bufio.Reader
+	ContentType string
+	Conn        net.Conn
+	Reader      *bufio.Reader
 }
 
 // Close closes the hijacked connection and reader.
