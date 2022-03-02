@@ -612,7 +612,8 @@ func (s *containerRouter) postContainersAttach(ctx context.Context, w http.Respo
 		return errdefs.InvalidParameter(errors.Errorf("error attaching to container %s, hijack connection missing", containerName))
 	}
 
-	setupStreams := func() (io.ReadCloser, io.Writer, io.Writer, error) {
+	contentType := api.MediaTypeRawStream
+	setupStreams := func(multiplexed bool) (io.ReadCloser, io.Writer, io.Writer, error) {
 		conn, _, err := hijacker.Hijack()
 		if err != nil {
 			return nil, nil, nil, err
@@ -622,9 +623,8 @@ func (s *containerRouter) postContainersAttach(ctx context.Context, w http.Respo
 		conn.Write([]byte{})
 
 		if upgrade {
-			contentType := api.MediaTypeMultiplexedStream
-			if httputils.BoolValue(r, "tty") {
-				contentType = api.MediaTypeRawStream
+			if multiplexed {
+				contentType = api.MediaTypeMultiplexedStream
 			}
 			contentType = httputil.NegotiateContentType(r, []string{contentType}, api.MediaTypeRawStream)
 
@@ -658,7 +658,7 @@ func (s *containerRouter) postContainersAttach(ctx context.Context, w http.Respo
 		if errHijack == nil {
 			statusCode := httpstatus.FromError(err)
 			statusText := http.StatusText(statusCode)
-			fmt.Fprintf(conn, "HTTP/1.1 %d %s\r\nContent-Type: application/vnd.docker.raw-stream\r\n\r\n%s\r\n", statusCode, statusText, err.Error())
+			fmt.Fprintf(conn, "HTTP/1.1 %d %s\r\nContent-Type: %s\r\n\r\n%s\r\n", statusCode, statusText, contentType, err.Error())
 			httputils.CloseStreams(conn)
 		} else {
 			logrus.Errorf("Error Hijacking: %v", err)
@@ -681,7 +681,7 @@ func (s *containerRouter) wsContainersAttach(ctx context.Context, w http.Respons
 
 	version := httputils.VersionFromContext(ctx)
 
-	setupStreams := func() (io.ReadCloser, io.Writer, io.Writer, error) {
+	setupStreams := func(multiplexed bool) (io.ReadCloser, io.Writer, io.Writer, error) {
 		wsChan := make(chan *websocket.Conn)
 		h := func(conn *websocket.Conn) {
 			wsChan <- conn

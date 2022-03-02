@@ -3,15 +3,15 @@ package swarm // import "github.com/docker/docker/api/server/router/swarm"
 import (
 	"context"
 	"fmt"
-	"github.com/docker/docker/api"
-	"github.com/golang/gddo/httputil"
 	"net/http"
 
+	"github.com/docker/docker/api"
 	"github.com/docker/docker/api/server/httputils"
 	basictypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/backend"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/api/types/versions"
+	"github.com/golang/gddo/httputil"
 )
 
 // swarmLogs takes an http response, request, and selector, and writes the logs
