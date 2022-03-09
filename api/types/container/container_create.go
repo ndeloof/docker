@@ -6,8 +6,219 @@ package container // import "github.com/docker/docker/api/types/container"
 // See hack/generate-swagger-api.sh
 // ----------------------------------------------------------------------------
 
+import (
+	"context"
+
+	"github.com/docker/docker/api/types"
+
+	types "github.com/docker/docker/api/restapi/types"
+)
+
+// ContainerCreateBody
+// swagger:model ContainerCreateBody
+
+type ContainerCreateBody struct {
+	types.ContainerConfig
+
+	// host config
+	HostConfig *types.HostConfig `json:"HostConfig,omitempty"`
+
+	// networking config
+	NetworkingConfig *types.NetworkingConfig `json:"NetworkingConfig,omitempty"`
+}
+
+// UnmarshalJSON unmarshals this object from a JSON structure
+func (o *ContainerCreateBody) UnmarshalJSON(raw []byte) error {
+	// ContainerCreateParamsBodyAO0
+	var containerCreateParamsBodyAO0 types.ContainerConfig
+	if err := swag.ReadJSON(raw, &containerCreateParamsBodyAO0); err != nil {
+		return err
+	}
+	o.ContainerConfig = containerCreateParamsBodyAO0
+
+	// ContainerCreateParamsBodyAO1
+	var dataContainerCreateParamsBodyAO1 struct {
+		HostConfig *types.HostConfig `json:"HostConfig,omitempty"`
+
+		NetworkingConfig *types.NetworkingConfig `json:"NetworkingConfig,omitempty"`
+	}
+	if err := swag.ReadJSON(raw, &dataContainerCreateParamsBodyAO1); err != nil {
+		return err
+	}
+
+	o.HostConfig = dataContainerCreateParamsBodyAO1.HostConfig
+
+	o.NetworkingConfig = dataContainerCreateParamsBodyAO1.NetworkingConfig
+
+	return nil
+}
+
+// MarshalJSON marshals this object to a JSON structure
+func (o ContainerCreateBody) MarshalJSON() ([]byte, error) {
+	_parts := make([][]byte, 0, 2)
+
+	containerCreateParamsBodyAO0, err := swag.WriteJSON(o.ContainerConfig)
+	if err != nil {
+		return nil, err
+	}
+	_parts = append(_parts, containerCreateParamsBodyAO0)
+	var dataContainerCreateParamsBodyAO1 struct {
+		HostConfig *types.HostConfig `json:"HostConfig,omitempty"`
+
+		NetworkingConfig *types.NetworkingConfig `json:"NetworkingConfig,omitempty"`
+	}
+
+	dataContainerCreateParamsBodyAO1.HostConfig = o.HostConfig
+
+	dataContainerCreateParamsBodyAO1.NetworkingConfig = o.NetworkingConfig
+
+	jsonDataContainerCreateParamsBodyAO1, errContainerCreateParamsBodyAO1 := swag.WriteJSON(dataContainerCreateParamsBodyAO1)
+	if errContainerCreateParamsBodyAO1 != nil {
+		return nil, errContainerCreateParamsBodyAO1
+	}
+	_parts = append(_parts, jsonDataContainerCreateParamsBodyAO1)
+	return swag.ConcatJSON(_parts...), nil
+}
+
+// Validate validates this container create body
+func (o *ContainerCreateBody) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	// validation for a type composition with types.ContainerConfig
+	if err := o.ContainerConfig.Validate(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.validateHostConfig(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.validateNetworkingConfig(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *ContainerCreateBody) validateHostConfig(formats strfmt.Registry) error {
+
+	if swag.IsZero(o.HostConfig) { // not required
+		return nil
+	}
+
+	if o.HostConfig != nil {
+		if err := o.HostConfig.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("body" + "." + "HostConfig")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("body" + "." + "HostConfig")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (o *ContainerCreateBody) validateNetworkingConfig(formats strfmt.Registry) error {
+
+	if swag.IsZero(o.NetworkingConfig) { // not required
+		return nil
+	}
+
+	if o.NetworkingConfig != nil {
+		if err := o.NetworkingConfig.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("body" + "." + "NetworkingConfig")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("body" + "." + "NetworkingConfig")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this container create body based on the context it is used
+func (o *ContainerCreateBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	// validation for a type composition with types.ContainerConfig
+	if err := o.ContainerConfig.ContextValidate(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.contextValidateHostConfig(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.contextValidateNetworkingConfig(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *ContainerCreateBody) contextValidateHostConfig(ctx context.Context, formats strfmt.Registry) error {
+
+	if o.HostConfig != nil {
+		if err := o.HostConfig.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("body" + "." + "HostConfig")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("body" + "." + "HostConfig")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (o *ContainerCreateBody) contextValidateNetworkingConfig(ctx context.Context, formats strfmt.Registry) error {
+
+	if o.NetworkingConfig != nil {
+		if err := o.NetworkingConfig.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("body" + "." + "NetworkingConfig")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("body" + "." + "NetworkingConfig")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *ContainerCreateBody) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *ContainerCreateBody) UnmarshalBinary(b []byte) error {
+	var res ContainerCreateBody
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
+}
+
 // ContainerCreateCreatedBody OK response to ContainerCreate operation
 // swagger:model ContainerCreateCreatedBody
+
 type ContainerCreateCreatedBody struct {
 
 	// The ID of the created container
@@ -17,4 +228,63 @@ type ContainerCreateCreatedBody struct {
 	// Warnings encountered when creating the container
 	// Required: true
 	Warnings []string `json:"Warnings"`
+}
+
+// Validate validates this container create created body
+func (o *ContainerCreateCreatedBody) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.validateWarnings(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *ContainerCreateCreatedBody) validateID(formats strfmt.Registry) error {
+
+	if err := validate.RequiredString("containerCreateCreated"+"."+"Id", "body", o.ID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ContainerCreateCreatedBody) validateWarnings(formats strfmt.Registry) error {
+
+	if err := validate.Required("containerCreateCreated"+"."+"Warnings", "body", o.Warnings); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this container create created body based on context it is used
+func (o *ContainerCreateCreatedBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *ContainerCreateCreatedBody) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *ContainerCreateCreatedBody) UnmarshalBinary(b []byte) error {
+	var res ContainerCreateCreatedBody
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
 }

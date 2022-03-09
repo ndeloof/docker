@@ -6,23 +6,152 @@ package container // import "github.com/docker/docker/api/types/container"
 // See hack/generate-swagger-api.sh
 // ----------------------------------------------------------------------------
 
+import (
+	"context"
+
+	"github.com/docker/docker/api/types"
+)
+
+// ContainerWaitOKBody OK response to ContainerWait operation
+// swagger:model ContainerWaitOKBody
+
+type ContainerWaitOKBody struct {
+
+	// error
+	Error *ContainerWaitOKBodyError `json:"Error,omitempty"`
+
+	// Exit code of the container
+	// Required: true
+	StatusCode int64 `json:"StatusCode"`
+}
+
+// Validate validates this container wait o k body
+func (o *ContainerWaitOKBody) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.validateError(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.validateStatusCode(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *ContainerWaitOKBody) validateError(formats strfmt.Registry) error {
+	if swag.IsZero(o.Error) { // not required
+		return nil
+	}
+
+	if o.Error != nil {
+		if err := o.Error.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("containerWaitOK" + "." + "Error")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("containerWaitOK" + "." + "Error")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (o *ContainerWaitOKBody) validateStatusCode(formats strfmt.Registry) error {
+
+	if err := validate.Required("containerWaitOK"+"."+"StatusCode", "body", int64(o.StatusCode)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this container wait o k body based on the context it is used
+func (o *ContainerWaitOKBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.contextValidateError(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *ContainerWaitOKBody) contextValidateError(ctx context.Context, formats strfmt.Registry) error {
+
+	if o.Error != nil {
+		if err := o.Error.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("containerWaitOK" + "." + "Error")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("containerWaitOK" + "." + "Error")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *ContainerWaitOKBody) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *ContainerWaitOKBody) UnmarshalBinary(b []byte) error {
+	var res ContainerWaitOKBody
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
+}
+
 // ContainerWaitOKBodyError container waiting error, if any
 // swagger:model ContainerWaitOKBodyError
+
 type ContainerWaitOKBodyError struct {
 
 	// Details of an error
 	Message string `json:"Message,omitempty"`
 }
 
-// ContainerWaitOKBody OK response to ContainerWait operation
-// swagger:model ContainerWaitOKBody
-type ContainerWaitOKBody struct {
+// Validate validates this container wait o k body error
+func (o *ContainerWaitOKBodyError) Validate(formats strfmt.Registry) error {
+	return nil
+}
 
-	// error
-	// Required: true
-	Error *ContainerWaitOKBodyError `json:"Error"`
+// ContextValidate validates this container wait o k body error based on context it is used
+func (o *ContainerWaitOKBodyError) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	return nil
+}
 
-	// Exit code of the container
-	// Required: true
-	StatusCode int64 `json:"StatusCode"`
+// MarshalBinary interface implementation
+func (o *ContainerWaitOKBodyError) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *ContainerWaitOKBodyError) UnmarshalBinary(b []byte) error {
+	var res ContainerWaitOKBodyError
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
 }

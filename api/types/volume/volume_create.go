@@ -6,26 +6,57 @@ package volume // import "github.com/docker/docker/api/types/volume"
 // See hack/generate-swagger-api.sh
 // ----------------------------------------------------------------------------
 
+import (
+	"context"
+
+	"github.com/docker/docker/api/types"
+)
+
 // VolumeCreateBody Volume configuration
 // swagger:model VolumeCreateBody
+
 type VolumeCreateBody struct {
 
 	// Name of the volume driver to use.
-	// Required: true
-	Driver string `json:"Driver"`
+	Driver string `json:"Driver,omitempty"`
 
 	// A mapping of driver options and values. These options are
 	// passed directly to the driver and are driver specific.
 	//
-	// Required: true
-	DriverOpts map[string]string `json:"DriverOpts"`
+	DriverOpts map[string]string `json:"DriverOpts,omitempty"`
 
 	// User-defined key/value metadata.
-	// Required: true
-	Labels map[string]string `json:"Labels"`
+	Labels map[string]string `json:"Labels,omitempty"`
 
 	// The new volume's name. If not specified, Docker generates a name.
 	//
-	// Required: true
-	Name string `json:"Name"`
+	Name string `json:"Name,omitempty"`
+}
+
+// Validate validates this volume create body
+func (o *VolumeCreateBody) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this volume create body based on context it is used
+func (o *VolumeCreateBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *VolumeCreateBody) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *VolumeCreateBody) UnmarshalBinary(b []byte) error {
+	var res VolumeCreateBody
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
 }

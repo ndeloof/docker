@@ -6,10 +6,18 @@ package volume // import "github.com/docker/docker/api/types/volume"
 // See hack/generate-swagger-api.sh
 // ----------------------------------------------------------------------------
 
-import "github.com/docker/docker/api/types"
+import (
+	"context"
+	"strconv"
+
+	"github.com/docker/docker/api/types"
+
+	types "github.com/docker/docker/api/restapi/types"
+)
 
 // VolumeListOKBody Volume list response
 // swagger:model VolumeListOKBody
+
 type VolumeListOKBody struct {
 
 	// List of volumes
@@ -20,4 +28,110 @@ type VolumeListOKBody struct {
 	//
 	// Required: true
 	Warnings []string `json:"Warnings"`
+}
+
+// Validate validates this volume list o k body
+func (o *VolumeListOKBody) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.validateVolumes(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.validateWarnings(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *VolumeListOKBody) validateVolumes(formats strfmt.Registry) error {
+
+	if err := validate.Required("volumeListOK"+"."+"Volumes", "body", o.Volumes); err != nil {
+		return err
+	}
+
+	for i := 0; i < len(o.Volumes); i++ {
+		if swag.IsZero(o.Volumes[i]) { // not required
+			continue
+		}
+
+		if o.Volumes[i] != nil {
+			if err := o.Volumes[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("volumeListOK" + "." + "Volumes" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("volumeListOK" + "." + "Volumes" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (o *VolumeListOKBody) validateWarnings(formats strfmt.Registry) error {
+
+	if err := validate.Required("volumeListOK"+"."+"Warnings", "body", o.Warnings); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this volume list o k body based on the context it is used
+func (o *VolumeListOKBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.contextValidateVolumes(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *VolumeListOKBody) contextValidateVolumes(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(o.Volumes); i++ {
+
+		if o.Volumes[i] != nil {
+			if err := o.Volumes[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("volumeListOK" + "." + "Volumes" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("volumeListOK" + "." + "Volumes" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *VolumeListOKBody) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *VolumeListOKBody) UnmarshalBinary(b []byte) error {
+	var res VolumeListOKBody
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
 }

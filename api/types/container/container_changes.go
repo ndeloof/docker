@@ -6,15 +6,108 @@ package container // import "github.com/docker/docker/api/types/container"
 // See hack/generate-swagger-api.sh
 // ----------------------------------------------------------------------------
 
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/docker/docker/api/types"
+)
+
 // ContainerChangeResponseItem change item in response to ContainerChanges operation
 // swagger:model ContainerChangeResponseItem
+
 type ContainerChangeResponseItem struct {
 
 	// Kind of change
 	// Required: true
+	// Enum: [0 1 2]
 	Kind uint8 `json:"Kind"`
 
 	// Path to file that has changed
 	// Required: true
 	Path string `json:"Path"`
+}
+
+// Validate validates this container change response item
+func (o *ContainerChangeResponseItem) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.validateKind(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.validatePath(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+var containerChangeResponseItemTypeKindPropEnum []interface{}
+
+func init() {
+	var res []uint8
+	if err := json.Unmarshal([]byte(`[0,1,2]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		containerChangeResponseItemTypeKindPropEnum = append(containerChangeResponseItemTypeKindPropEnum, v)
+	}
+}
+
+// prop value enum
+func (o *ContainerChangeResponseItem) validateKindEnum(path, location string, value uint8) error {
+	if err := validate.EnumCase(path, location, value, containerChangeResponseItemTypeKindPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (o *ContainerChangeResponseItem) validateKind(formats strfmt.Registry) error {
+
+	if err := validate.Required("Kind", "body", uint8(o.Kind)); err != nil {
+		return err
+	}
+
+	// value enum
+	if err := o.validateKindEnum("Kind", "body", o.Kind); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ContainerChangeResponseItem) validatePath(formats strfmt.Registry) error {
+
+	if err := validate.RequiredString("Path", "body", o.Path); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this container change response item based on context it is used
+func (o *ContainerChangeResponseItem) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *ContainerChangeResponseItem) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *ContainerChangeResponseItem) UnmarshalBinary(b []byte) error {
+	var res ContainerChangeResponseItem
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
 }

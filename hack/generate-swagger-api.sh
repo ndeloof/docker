@@ -2,7 +2,7 @@
 set -eu
 
 swagger generate model -f api/swagger.yaml \
-	-t api -m types --skip-validator -C api/swagger-gen.yaml \
+	-t api -m types -C api/swagger-gen.yaml \
 	-n ErrorResponse \
 	-n GraphDriverData \
 	-n IdResponse \
@@ -15,7 +15,7 @@ swagger generate model -f api/swagger.yaml \
 
 swagger generate operation -f api/swagger.yaml \
 	-t api -a types -m types -C api/swagger-gen.yaml \
-	-T api/templates --skip-responses --skip-parameters --skip-validator \
+	-T api/templates --skip-responses --skip-parameters \
 	-n Authenticate \
 	-n ContainerChanges \
 	-n ContainerCreate \
