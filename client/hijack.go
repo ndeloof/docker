@@ -114,12 +114,7 @@ func (cli *Client) setupHijackConn(ctx context.Context, req *http.Request, proto
 		br.Reset(nil)
 	}
 
-	var mediaType string
-	if h, ok := resp.Header["Content-Type"]; ok {
-		mediaType = h[0]
-	}
-
-	return c, mediaType, nil
+	return c, resp.Header.Get("Content-Type"), nil
 }
 
 // hijackedConn wraps a net.Conn and is returned by setupHijackConn in the case

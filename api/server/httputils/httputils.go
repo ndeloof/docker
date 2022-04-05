@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/errdefs"
+	"github.com/golang/gddo/httputil"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -42,6 +43,15 @@ func CloseStreams(streams ...interface{}) {
 			_ = closer.Close()
 		}
 	}
+}
+
+// NegotiateContentType returns the best offered content type for the request's
+// Accept header. If two offers match with equal weight, then the more specific
+// offer is preferred.  For example, text/* trumps */*. If two offers match
+// with equal weight and specificity, then the offer earlier in the list is
+// preferred. If no offers match, then defaultOffer is returned.
+func NegotiateContentType(r *http.Request, offers []string, defaultOffer string) string {
+	return httputil.NegotiateContentType(r, offers, defaultOffer)
 }
 
 // CheckForJSON makes sure that the request's Content-Type is application/json.

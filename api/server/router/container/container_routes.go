@@ -10,7 +10,6 @@ import (
 	"syscall"
 
 	"github.com/containerd/containerd/platforms"
-	"github.com/docker/docker/api"
 	"github.com/docker/docker/api/server/httpstatus"
 	"github.com/docker/docker/api/server/httputils"
 	"github.com/docker/docker/api/types"
@@ -21,7 +20,6 @@ import (
 	containerpkg "github.com/docker/docker/container"
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/pkg/ioutils"
-	"github.com/golang/gddo/httputil"
 	"github.com/moby/sys/signal"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -157,11 +155,11 @@ func (s *containerRouter) getContainersLogs(ctx context.Context, w http.Response
 		return err
 	}
 
-	contentType := api.MediaTypeRawStream
+	contentType := types.MediaTypeRawStream
 	if !tty {
-		contentType = api.MediaTypeMultiplexedStream
+		contentType = httputils.NegotiateContentType(r, []string{types.MediaTypeMultiplexedStream}, types.MediaTypeRawStream)
 	}
-	w.Header().Add("Content-Type", httputil.NegotiateContentType(r, []string{contentType}, api.MediaTypeRawStream))
+	w.Header().Set("Content-Type", contentType)
 
 	// if has a tty, we're not muxing streams. if it doesn't, we are. simple.
 	// this is the point of no return for writing a response. once we call
@@ -612,7 +610,7 @@ func (s *containerRouter) postContainersAttach(ctx context.Context, w http.Respo
 		return errdefs.InvalidParameter(errors.Errorf("error attaching to container %s, hijack connection missing", containerName))
 	}
 
-	contentType := api.MediaTypeRawStream
+	contentType := types.MediaTypeRawStream
 	setupStreams := func(multiplexed bool) (io.ReadCloser, io.Writer, io.Writer, error) {
 		conn, _, err := hijacker.Hijack()
 		if err != nil {
@@ -624,10 +622,8 @@ func (s *containerRouter) postContainersAttach(ctx context.Context, w http.Respo
 
 		if upgrade {
 			if multiplexed {
-				contentType = api.MediaTypeMultiplexedStream
+				contentType = httputils.NegotiateContentType(r, []string{types.MediaTypeMultiplexedStream}, types.MediaTypeRawStream)
 			}
-			contentType = httputil.NegotiateContentType(r, []string{contentType}, api.MediaTypeRawStream)
-
 			fmt.Fprintf(conn, "HTTP/1.1 101 UPGRADED\r\nContent-Type: "+contentType+"\r\nConnection: Upgrade\r\nUpgrade: tcp\r\n\r\n")
 		} else {
 			fmt.Fprintf(conn, "HTTP/1.1 200 OK\r\nContent-Type: application/vnd.docker.raw-stream\r\n\r\n")
@@ -652,16 +648,16 @@ func (s *containerRouter) postContainersAttach(ctx context.Context, w http.Respo
 	}
 
 	if err = s.backend.ContainerAttach(containerName, attachConfig); err != nil {
-		logrus.Errorf("Handler for %s %s returned error: %v", r.Method, r.URL.Path, err)
+		logrus.WithError(err).Errorf("Handler for %s %s returned error", r.Method, r.URL.Path)
 		// Remember to close stream if error happens
 		conn, _, errHijack := hijacker.Hijack()
-		if errHijack == nil {
+		if errHijack != nil {
+			logrus.WithError(err).Errorf("Handler for %s %s: unable to close stream; error when hijacking connection", r.Method, r.URL.Path)
+		} else {
 			statusCode := httpstatus.FromError(err)
 			statusText := http.StatusText(statusCode)
 			fmt.Fprintf(conn, "HTTP/1.1 %d %s\r\nContent-Type: %s\r\n\r\n%s\r\n", statusCode, statusText, contentType, err.Error())
 			httputils.CloseStreams(conn)
-		} else {
-			logrus.Errorf("Error Hijacking: %v", err)
 		}
 	}
 	return nil

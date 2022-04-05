@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -121,12 +120,12 @@ func (s *DockerSuite) TestPostContainersAttach(c *testing.T) {
 			}
 			assert.Equal(c, actual[0], fdMap[stream])
 		}
-		assert.Assert(c, is.DeepEqual(actual[lenHeader:], expected), "Attach didn'c return the expected data from %s", stream)
+		assert.Assert(c, is.DeepEqual(actual[lenHeader:], expected), "Attach didn't return the expected data from %s", stream)
 	}
 
 	expectTimeout := func(wc io.WriteCloser, br *bufio.Reader, stream string) {
 		defer wc.Close()
-		_, err := wc.Write([]byte{'c'})
+		_, err := wc.Write([]byte{'t'})
 		assert.NilError(c, err)
 
 		actual := make([]byte, 1)
@@ -183,7 +182,7 @@ func (s *DockerSuite) TestPostContainersAttach(c *testing.T) {
 	cid, _ = dockerCmd(c, "run", "-di", "busybox", "/bin/sh", "-c", "echo hello; cat")
 	cid = strings.TrimSpace(cid)
 
-	// Make sure we don'c see "hello" if Logs is false
+	// Make sure we don't see "hello" if Logs is false
 	attachOpts := types.ContainerAttachOptions{
 		Stream: true,
 		Stdin:  true,
@@ -194,7 +193,7 @@ func (s *DockerSuite) TestPostContainersAttach(c *testing.T) {
 
 	resp, err := client.ContainerAttach(context.Background(), cid, attachOpts)
 	assert.NilError(c, err)
-	assert.Equal(c, resp.ContentType, api.MediaTypeMultiplexedStream)
+	assert.Equal(c, resp.ContentType, types.MediaTypeMultiplexedStream)
 	expectSuccess(resp.Conn, resp.Reader, "stdout", false)
 
 	// Make sure we do see "hello" if Logs is true

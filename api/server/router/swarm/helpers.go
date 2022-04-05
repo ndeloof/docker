@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/docker/docker/api"
 	"github.com/docker/docker/api/server/httputils"
 	basictypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/backend"
@@ -64,11 +63,11 @@ func (sr *swarmRouter) swarmLogs(ctx context.Context, w http.ResponseWriter, r *
 		return err
 	}
 
-	contentType := api.MediaTypeRawStream
+	contentType := basictypes.MediaTypeRawStream
 	if !tty {
-		contentType = api.MediaTypeMultiplexedStream
+		contentType = httputil.NegotiateContentType(r, []string{basictypes.MediaTypeMultiplexedStream}, basictypes.MediaTypeRawStream)
 	}
-	w.Header().Add("Content-Type", httputil.NegotiateContentType(r, []string{contentType}, api.MediaTypeRawStream))
+	w.Header().Set("Content-Type", contentType)
 	httputils.WriteLogStream(ctx, w, msgs, logsConfig, !tty)
 	return nil
 }

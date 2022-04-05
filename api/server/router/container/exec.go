@@ -9,13 +9,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/docker/docker/api"
 	"github.com/docker/docker/api/server/httputils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/versions"
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/golang/gddo/httputil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -110,11 +108,10 @@ func (s *containerRouter) postContainerExecStart(ctx context.Context, w http.Res
 		defer httputils.CloseStreams(inStream, outStream)
 
 		if _, ok := r.Header["Upgrade"]; ok {
-			contentType := api.MediaTypeRawStream
+			contentType := types.MediaTypeRawStream
 			if !execStartCheck.Tty {
-				contentType = api.MediaTypeMultiplexedStream
+				contentType = httputils.NegotiateContentType(r, []string{types.MediaTypeMultiplexedStream}, types.MediaTypeRawStream)
 			}
-			contentType = httputil.NegotiateContentType(r, []string{contentType}, api.MediaTypeRawStream)
 			fmt.Fprint(outStream, "HTTP/1.1 101 UPGRADED\r\nContent-Type: "+contentType+"\r\nConnection: Upgrade\r\nUpgrade: tcp\r\n")
 		} else {
 			fmt.Fprint(outStream, "HTTP/1.1 200 OK\r\nContent-Type: application/vnd.docker.raw-stream\r\n")
