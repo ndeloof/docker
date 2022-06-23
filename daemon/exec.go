@@ -272,7 +272,10 @@ func (daemon *Daemon) ContainerExecStart(ctx context.Context, name string, optio
 		CloseStdin: true,
 	}
 	ec.StreamConfig.AttachStreams(&attachConfig)
-	attachErr := ec.StreamConfig.CopyStreams(ctx, &attachConfig)
+	// using context.Background() so that we can wait for exec completion even after ctx cancellation
+	copyCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	attachErr := ec.StreamConfig.CopyStreams(copyCtx, &attachConfig)
 
 	// Synchronize with libcontainerd event loop
 	ec.Lock()
@@ -293,15 +296,22 @@ func (daemon *Daemon) ContainerExecStart(ctx context.Context, name string, optio
 	select {
 	case <-ctx.Done():
 		logrus.Debugf("Sending TERM signal to process %v in container %v", name, c.ID)
-		daemon.containerd.SignalProcess(ctx, c.ID, name, signal.SignalMap["TERM"])
+		sigCtx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancelFunc()
+		daemon.containerd.SignalProcess(sigCtx, c.ID, name, signal.SignalMap["TERM"])
 
-		timeout := time.NewTimer(termProcessTimeout)
+		wait := termProcessTimeout
+		if options.StopTimeout != 0 {
+			wait = options.StopTimeout
+		}
+		timeout := time.NewTimer(wait)
 		defer timeout.Stop()
-
 		select {
 		case <-timeout.C:
 			logrus.Infof("Container %v, process %v failed to exit within %v of signal TERM - using the force", c.ID, name, termProcessTimeout)
-			daemon.containerd.SignalProcess(ctx, c.ID, name, signal.SignalMap["KILL"])
+			sigCtx, cancelFunc = context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancelFunc()
+			daemon.containerd.SignalProcess(sigCtx, c.ID, name, signal.SignalMap["KILL"])
 		case <-attachErr:
 			// TERM signal worked
 		}

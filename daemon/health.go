@@ -100,8 +100,9 @@ func (p *cmdProbe) run(ctx context.Context, d *Daemon, cntr *container.Container
 	execErr := make(chan error, 1)
 
 	options := containertypes.ExecStartOptions{
-		Stdout: output,
-		Stderr: output,
+		Stdout:      output,
+		Stderr:      output,
+		StopTimeout: cntr.Config.Healthcheck.StopTimeout,
 	}
 
 	go func() { execErr <- d.ContainerExecStart(probeCtx, execConfig.ID, options) }()
@@ -136,9 +137,16 @@ func (p *cmdProbe) run(ctx context.Context, d *Daemon, cntr *container.Container
 		// Wait for probe to exit (it might take a while to respond to the TERM
 		// signal and we don't want dying probes to pile up).
 		<-execErr
+		out := output.String()
+		var msg string
+		if len(out) > 0 {
+			msg = fmt.Sprintf("Health check exceeded timeout (%v):\n%s", probeTimeout, out)
+		} else {
+			msg = fmt.Sprintf("Health check exceeded timeout (%v)", probeTimeout)
+		}
 		return &types.HealthcheckResult{
 			ExitCode: -1,
-			Output:   fmt.Sprintf("Health check exceeded timeout (%v)", probeTimeout),
+			Output:   msg,
 			End:      time.Now(),
 		}, nil
 	case err := <-execErr:
