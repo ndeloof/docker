@@ -47,7 +47,7 @@ type HealthConfig struct {
 	Interval    time.Duration `json:",omitempty"` // Interval is the time to wait between checks.
 	Timeout     time.Duration `json:",omitempty"` // Timeout is the time to wait before considering the check to have hung.
 	StartPeriod time.Duration `json:",omitempty"` // The start period for the container to initialize before the retries starts to count down.
-	StopTimeout time.Duration `json:",omitempty"` // StopTimeout is the time to wait for exec process to stop before sending SIGKILL.
+	StopTimeout time.Duration `json:"-"`          // StopTimeout is the time to wait for exec process to stop before sending SIGKILL. It is currently only used for integration tests.
 
 	// Retries is the number of consecutive failures needed to consider a container as unhealthy.
 	// Zero means inherit.
@@ -59,8 +59,7 @@ type ExecStartOptions struct {
 	Stdin       io.Reader
 	Stdout      io.Writer
 	Stderr      io.Writer
-	ConsoleSize *[2]uint      `json:",omitempty"`
-	StopTimeout time.Duration `json:",omitempty"` // StopTimeout is the time to wait for exec process to stop before sending SIGKILL.
+	ConsoleSize *[2]uint `json:",omitempty"`
 }
 
 // Config contains the configuration data about a container.

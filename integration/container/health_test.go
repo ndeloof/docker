@@ -106,8 +106,8 @@ func TestHealthCheckProcessKilled(t *testing.T) {
 			Test:        []string{"CMD-SHELL", "sh -c 'trap \"echo SIGTERM\" 15; sleep 30 & pid=$!; while jobs %% >/dev/null; do wait $pid; done'"},
 			Interval:    100 * time.Millisecond,
 			Timeout:     50 * time.Millisecond,
-			StopTimeout: 10 * time.Millisecond,
 			Retries:     1,
+			StopTimeout: 20 * time.Millisecond,
 		}
 	})
 	poll.WaitOn(t, pollForHealthCheckLog(ctx, client, cID, "Health check exceeded timeout (50ms):\nSIGTERM\n"))
