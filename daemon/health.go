@@ -81,6 +81,7 @@ func (p *cmdProbe) run(ctx context.Context, d *Daemon, cntr *container.Container
 	execConfig.Privileged = false
 	execConfig.User = cntr.Config.User
 	execConfig.WorkingDir = cntr.Config.WorkingDir
+	execConfig.StopTimeout = &cntr.Config.Healthcheck.StopTimeout
 
 	linkedEnv, err := d.setupLinkedContainers(cntr)
 	if err != nil {
@@ -100,9 +101,8 @@ func (p *cmdProbe) run(ctx context.Context, d *Daemon, cntr *container.Container
 	execErr := make(chan error, 1)
 
 	options := containertypes.ExecStartOptions{
-		Stdout:      output,
-		Stderr:      output,
-		StopTimeout: cntr.Config.Healthcheck.StopTimeout,
+		Stdout: output,
+		Stderr: output,
 	}
 
 	go func() { execErr <- d.ContainerExecStart(probeCtx, execConfig.ID, options) }()

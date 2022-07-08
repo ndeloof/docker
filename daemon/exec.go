@@ -301,8 +301,8 @@ func (daemon *Daemon) ContainerExecStart(ctx context.Context, name string, optio
 		daemon.containerd.SignalProcess(sigCtx, c.ID, name, signal.SignalMap["TERM"])
 
 		wait := termProcessTimeout
-		if options.StopTimeout != 0 {
-			wait = options.StopTimeout
+		if ec.StopTimeout != nil {
+			wait = *ec.StopTimeout
 		}
 		timeout := time.NewTimer(wait)
 		defer timeout.Stop()
