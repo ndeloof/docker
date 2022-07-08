@@ -37,7 +37,7 @@ type Config struct {
 	Env          []string
 	Pid          int
 	ConsoleSize  *[2]uint
-	StopTimeout  *time.Duration // StopTimeout is the timeout to wait for exec process to stop before sending SIGKILL.
+	StopTimeout  time.Duration // StopTimeout is the timeout to wait for exec process to stop before sending SIGKILL.
 }
 
 // NewConfig initializes the a new exec configuration
