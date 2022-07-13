@@ -83,9 +83,6 @@ func (p *cmdProbe) run(ctx context.Context, d *Daemon, cntr *container.Container
 	execConfig.WorkingDir = cntr.Config.WorkingDir
 	// health checks don't get the full 10 seconds timeout to stop gracefully.
 	execConfig.StopTimeout = 500 * time.Millisecond
-	if cntr.Config.Healthcheck.StopTimeout != 0 {
-		execConfig.StopTimeout = cntr.Config.Healthcheck.StopTimeout
-	}
 
 	linkedEnv, err := d.setupLinkedContainers(cntr)
 	if err != nil {

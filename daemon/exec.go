@@ -126,6 +126,7 @@ func (daemon *Daemon) ContainerExecCreate(name string, config *types.ExecConfig)
 	execConfig.Privileged = config.Privileged
 	execConfig.User = config.User
 	execConfig.WorkingDir = config.WorkingDir
+	execConfig.StopTimeout = termProcessTimeout
 
 	linkedEnv, err := daemon.setupLinkedContainers(cntr)
 	if err != nil {
@@ -300,11 +301,7 @@ func (daemon *Daemon) ContainerExecStart(ctx context.Context, name string, optio
 		defer cancelFunc()
 		daemon.containerd.SignalProcess(sigCtx, c.ID, name, signal.SignalMap["TERM"])
 
-		wait := termProcessTimeout
-		if ec.StopTimeout != 0 {
-			wait = ec.StopTimeout
-		}
-		timeout := time.NewTimer(wait)
+		timeout := time.NewTimer(ec.StopTimeout)
 		defer timeout.Stop()
 		select {
 		case <-timeout.C:

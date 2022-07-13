@@ -103,11 +103,10 @@ func TestHealthCheckProcessKilled(t *testing.T) {
 
 	cID := container.Run(ctx, t, client, func(c *container.TestContainerConfig) {
 		c.Config.Healthcheck = &containertypes.HealthConfig{
-			Test:        []string{"CMD-SHELL", "sh -c 'trap \"echo SIGTERM\" 15; sleep 30 & pid=$!; while jobs %% >/dev/null; do wait $pid; done'"},
-			Interval:    100 * time.Millisecond,
-			Timeout:     50 * time.Millisecond,
-			Retries:     1,
-			StopTimeout: 20 * time.Millisecond,
+			Test:     []string{"CMD-SHELL", "sh -c 'trap \"echo SIGTERM\" 15; sleep 30 & pid=$!; while jobs %% >/dev/null; do wait $pid; done'"},
+			Interval: 100 * time.Millisecond,
+			Timeout:  50 * time.Millisecond,
+			Retries:  1,
 		}
 	})
 	poll.WaitOn(t, pollForHealthCheckLog(ctx, client, cID, "Health check exceeded timeout (50ms):\nSIGTERM\n"))
