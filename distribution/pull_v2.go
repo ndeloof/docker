@@ -258,7 +258,17 @@ func (ld *layerDescriptor) Download(ctx context.Context, progressOutput progress
 		ld.verifier = ld.digest.Verifier()
 	}
 
-	_, err = io.Copy(tmpFile, io.TeeReader(reader, ld.verifier))
+	var (
+		in           io.Reader = reader
+		diffVerifier digest.Verifier
+	)
+	diffID, err := ld.DiffID()
+	if err == nil {
+		diffVerifier = digest.Digest(diffID).Verifier()
+		in = io.TeeReader(in, diffVerifier)
+	}
+
+	_, err = io.Copy(tmpFile, io.TeeReader(in, ld.verifier))
 	if err != nil {
 		if err == transport.ErrWrongCodeForByteRange {
 			if err := ld.truncateDownloadFile(); err != nil {
@@ -271,7 +281,7 @@ func (ld *layerDescriptor) Download(ctx context.Context, progressOutput progress
 
 	progress.Update(progressOutput, ld.ID(), "Verifying Checksum")
 
-	if !ld.verifier.Verified() {
+	if !ld.verifier.Verified() && (diffVerifier == nil || !diffVerifier.Verified()) {
 		err = fmt.Errorf("filesystem layer verification failed for digest %s", ld.digest)
 		logrus.Error(err)
 
@@ -649,13 +659,21 @@ func (p *puller) pullSchema2Layers(ctx context.Context, target distribution.Desc
 		}
 		configChan <- configJSON
 	}()
+	configJSON, configRootFS, configPlatform, err := receiveConfig(configChan, configErrChan)
+	if err != nil {
+		return "", err
+	}
+
+	if len(descriptors) != len(configRootFS.DiffIDs) {
+		return "", errRootFSMismatch
+	}
+	for i := range descriptors {
+		descriptors[i].(*layerDescriptor).diffID = configRootFS.DiffIDs[i]
+	}
 
 	var (
-		configJSON       []byte          // raw serialized image config
-		downloadedRootFS *image.RootFS   // rootFS from registered layers
-		configRootFS     *image.RootFS   // rootFS from configuration
-		release          func()          // release resources from rootFS download
-		configPlatform   *specs.Platform // for LCOW when registering downloaded layers
+		downloadedRootFS *image.RootFS // rootFS from registered layers
+		release          func()        // release resources from rootFS download
 	)
 
 	layerStoreOS := runtime.GOOS
@@ -672,10 +690,6 @@ func (p *puller) pullSchema2Layers(ctx context.Context, target distribution.Desc
 	// check to block Windows images being pulled on Linux is implemented, it
 	// may be necessary to perform the same type of serialisation.
 	if runtime.GOOS == "windows" {
-		configJSON, configRootFS, configPlatform, err = receiveConfig(configChan, configErrChan)
-		if err != nil {
-			return "", err
-		}
 		if configRootFS == nil {
 			return "", errRootFSInvalid
 		}
@@ -683,9 +697,6 @@ func (p *puller) pullSchema2Layers(ctx context.Context, target distribution.Desc
 			return "", err
 		}
 
-		if len(descriptors) != len(configRootFS.DiffIDs) {
-			return "", errRootFSMismatch
-		}
 		if platform == nil {
 			// Early bath if the requested OS doesn't match that of the configuration.
 			// This avoids doing the download, only to potentially fail later.
@@ -693,12 +704,6 @@ func (p *puller) pullSchema2Layers(ctx context.Context, target distribution.Desc
 				return "", fmt.Errorf("cannot download image with operating system %q when requesting %q", configPlatform.OS, layerStoreOS)
 			}
 			layerStoreOS = configPlatform.OS
-		}
-
-		// Populate diff ids in descriptors to avoid downloading foreign layers
-		// which have been side loaded
-		for i := range descriptors {
-			descriptors[i].(*layerDescriptor).diffID = configRootFS.DiffIDs[i]
 		}
 	}
 
@@ -730,21 +735,6 @@ func (p *puller) pullSchema2Layers(ctx context.Context, target distribution.Desc
 	} else {
 		// We have nothing to download
 		close(downloadsDone)
-	}
-
-	if configJSON == nil {
-		configJSON, configRootFS, _, err = receiveConfig(configChan, configErrChan)
-		if err == nil && configRootFS == nil {
-			err = errRootFSInvalid
-		}
-		if err != nil {
-			cancel()
-			select {
-			case <-downloadsDone:
-			case <-layerErrChan:
-			}
-			return "", err
-		}
 	}
 
 	select {
