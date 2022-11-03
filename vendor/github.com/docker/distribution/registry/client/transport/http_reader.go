@@ -1,12 +1,17 @@
 package transport
 
 import (
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
+	"unicode"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 var (
@@ -180,7 +185,9 @@ func (hrs *httpReadSeeker) reader() (io.Reader, error) {
 		// context.GetLogger(hrs.context).Infof("Range: %s", req.Header.Get("Range"))
 	}
 
-	req.Header.Add("Accept-Encoding", "identity")
+	fmt.Println("Pulling with Transport-Compression enabled")
+	req.Header.Add("Docker-Transport-Compression", "enabled")
+	req.Header.Add("Accept-Encoding", "gzip, zstd")
 	resp, err := hrs.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -246,5 +253,29 @@ func (hrs *httpReadSeeker) reader() (io.Reader, error) {
 		return nil, fmt.Errorf("unexpected status resolving reader: %v", resp.Status)
 	}
 
+	encoding := strings.FieldsFunc(resp.Header.Get("Content-Encoding"), func(r rune) bool {
+		return unicode.IsSpace(r) || r == ','
+	})
+	for i := len(encoding) - 1; i >= 0; i-- {
+		algorithm := strings.ToLower(encoding[i])
+		fmt.Printf(">>> Content has been downloaded with compression: %s\n", algorithm)
+		switch algorithm {
+			case "gzip":
+				hrs.rc, err = gzip.NewReader(hrs.rc)
+				if err != nil {
+					return nil, err
+				}
+			case "zstd":
+				raw, err := zstd.NewReader(hrs.rc)
+				if err != nil {
+					return nil, err
+				}
+				hrs.rc = raw.IOReadCloser()
+			case "":
+				// no content-encoding applied, use raw body
+			default:
+				return nil, errors.New("unsupported Content-Encoding algorithm: " + algorithm)
+		}
+	}
 	return hrs.rc, nil
 }
