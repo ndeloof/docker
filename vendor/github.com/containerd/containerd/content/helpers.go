@@ -144,15 +144,23 @@ func Copy(ctx context.Context, cw Writer, r io.Reader, size int64, expected dige
 		}
 	}
 
-	copied, err := copyWithBuffer(cw, r)
+	actualSize, err := copyWithBuffer(cw, r)
 	if err != nil {
 		return fmt.Errorf("failed to copy: %w", err)
 	}
-	if size != 0 && copied < size-ws.Offset {
+	// FIXME(ndeloof) size check is irrelevant as we negocitate transport compression algorithm
+/*	if size != 0 && copied < size-ws.Offset {
 		// Short writes would return its own error, this indicates a read failure
 		return fmt.Errorf("failed to read expected number of bytes: %w", io.ErrUnexpectedEOF)
 	}
+*/
 
+	value := ctx.Value("diff_id")
+	if value != nil {
+		size = actualSize
+		expected = value.(digest.Digest)
+	}
+	
 	if err := cw.Commit(ctx, size, expected, opts...); err != nil {
 		if !errdefs.IsAlreadyExists(err) {
 			return fmt.Errorf("failed commit on ref %q: %w", ws.Ref, err)
@@ -160,6 +168,10 @@ func Copy(ctx context.Context, cw Writer, r io.Reader, size int64, expected dige
 	}
 
 	return nil
+}
+
+type encoded interface {
+	Encoding() string
 }
 
 // CopyReaderAt copies to a writer from a given reader at for the given

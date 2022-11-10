@@ -204,7 +204,7 @@ func (u *unpacker) unpack(
 			}
 
 			go func(i int) {
-				err := u.fetch(ctx, h, layers[i:], fetchC)
+				err := u.fetch(ctx, h, layers[i:], diffIDs[i:], fetchC)
 				if err != nil {
 					fetchErr <- err
 				}
@@ -279,11 +279,12 @@ func (u *unpacker) unpack(
 	return nil
 }
 
-func (u *unpacker) fetch(ctx context.Context, h images.Handler, layers []ocispec.Descriptor, done []chan struct{}) error {
+func (u *unpacker) fetch(ctx context.Context, h images.Handler, layers []ocispec.Descriptor, diffids []digest.Digest, done []chan struct{}) error {
 	eg, ctx2 := errgroup.WithContext(ctx)
 	for i, desc := range layers {
 		desc := desc
 		i := i
+		ctx2 = context.WithValue(ctx, "diff_id", diffids[i])
 
 		if err := u.acquire(ctx); err != nil {
 			return err

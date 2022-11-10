@@ -17,6 +17,7 @@
 package docker
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -25,10 +26,12 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"unicode"
 
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/images"
 	"github.com/containerd/containerd/log"
+	"github.com/klauspost/compress/zstd"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -128,6 +131,9 @@ func (r dockerFetcher) Fetch(ctx context.Context, desc ocispec.Descriptor) (io.R
 				return nil, err
 			}
 
+			fmt.Println(">>> Enable Transport Compression")
+			req.header.Set("Docker-Transport-Compression", "enabled")
+			req.header.Set("Accept-Encoding", "zstd, gzip")
 			rc, err := r.open(ctx, req, desc.MediaType, offset)
 			if err != nil {
 				// Store the error for referencing later
@@ -211,5 +217,31 @@ func (r dockerFetcher) open(ctx context.Context, req *request, mediatype string,
 		}
 	}
 
+	encoding := strings.FieldsFunc(resp.Header.Get("Content-Encoding"), func(r rune) bool {
+		return unicode.IsSpace(r) || r == ','
+	})
+	for i := len(encoding) - 1; i >= 0; i-- {
+		algorithm := strings.ToLower(encoding[i])
+		fmt.Printf(">>> Content has been downloaded with compression: %s\n", algorithm)
+		switch algorithm {
+		case "gzip":
+			resp.Body, err = gzip.NewReader(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+		case "zstd":
+			raw, err := zstd.NewReader(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = raw.IOReadCloser()
+		case "":
+			// no content-encoding applied, use raw body
+		default:
+			return nil, errors.New("unsupported Content-Encoding algorithm: " + algorithm)
+		}
+	}
+
+	// FIXME(ndeloof) need to let caller know some encoding applied and it can't validate content by manifest's digest
 	return resp.Body, nil
 }
