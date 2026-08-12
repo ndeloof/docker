@@ -1,0 +1,4 @@
+services:
+  hello:
+    image: alpine
+    command: ["echo", "hello-from-poc"]
