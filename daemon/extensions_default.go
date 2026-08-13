@@ -4,6 +4,7 @@ import (
 	"github.com/moby/extensions"
 	"github.com/moby/extensions/clientpoint"
 	"github.com/moby/moby/v2/daemon/config"
+	"github.com/moby/moby/v2/daemon/internal/compose"
 )
 
 // clientProviders lists generated client wiring for points that launched
@@ -14,5 +15,6 @@ func clientProviders() []clientpoint.Registration {
 
 // builtinExtensions returns the in-process extensions selected by daemon config.
 func builtinExtensions(*config.Config) []extensions.Extension {
-	return nil
+	// demo: the compose stack receiver is always on
+	return []extensions.Extension{compose.Extension}
 }
